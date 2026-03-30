@@ -217,8 +217,8 @@ spr_x_size1			EQU 64
 spr_x_size2			EQU 64
 spr_depth			EQU 2
 spr_colors_number		EQU 16
-spr_odd_color_table_select	EQU 8	; COLOR128..COLOR143
-spr_even_color_table_select	EQU 8	; COLOR128..COLOR143
+spr_odd_color_table_select	EQU 8	; scrolltext/cube COLOR128..COLOR143
+spr_even_color_table_select	EQU 8	; scrolltext/cube COLOR128..COLOR143
 spr_used_number			EQU 6
 spr_swap_number			EQU 2
 
@@ -360,7 +360,7 @@ wst_horiz_scroll_speed1		EQU 10
 wst_horiz_scroll_speed2		EQU 12
 wst_horiz_scroll_speed3		EQU 17
 
-wst_text_char_x_restart		EQU wst_horiz_scroll_window_x_size*4 ;*4 da superhires Pixel
+wst_text_char_x_restart		EQU wst_horiz_scroll_window_x_size*SHIRES_PIXEL_FACTOR
 wst_text_chars_number		EQU wst_horiz_scroll_window_x_size/wst_text_char_x_size
 
 wst_y_radius			EQU (visible_lines_number-wst_text_char_y_size)/2
@@ -668,7 +668,7 @@ spr0_extension1_size		RS.B 0
 
 spr0_begin			RS.B 0
 
-spr0_extension1_entry RS.B spr0_extension1_size
+spr0_extension1_entry		RS.B spr0_extension1_size
 
 spr0_end			RS.L 1*(spr_pixel_per_datafetch/WORD_BITS)
 
@@ -803,7 +803,7 @@ sprite6_size			RS.B 0
 ; Sprite7 additional structure
 	RSRESET
 
-spr7_extension1	RS.B 0
+spr7_extension1			RS.B 0
 
 spr7_ext1_header		RS.L 1*(spr_pixel_per_datafetch/WORD_BITS)
 spr7_ext1_planedata		RS.L bv_image_y_size*(spr_pixel_per_datafetch/WORD_BITS)
@@ -820,7 +820,6 @@ spr7_extension1_entry		RS.B spr7_extension1_size
 spr7_end			RS.L 1*(spr_pixel_per_datafetch/WORD_BITS)
 
 sprite7_size			RS.B 0
-
 
 spr0_x_size1			EQU spr_x_size1
 spr0_y_size1			EQU sprite0_size/(spr_pixel_per_datafetch/4)
@@ -1400,7 +1399,7 @@ wave_scrolltext
 	add.w	wst_y_angle_speed(a3),d0
 	and.w	#sine_table_length-1,d0	; remove overflow
 	move.w	d0,wst_y_angle(a3) 
-	moveq	#wst_image_plane_width-4,d3
+	moveq	#wst_image_plane_width-LONGWORD_SIZE,d3
 	lea	wst_chars_x_positions(pc),a2
 	lea	spr_pointers_display(pc),a4
 	lea	sine_table(pc),a5
