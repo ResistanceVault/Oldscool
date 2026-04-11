@@ -428,11 +428,11 @@ bv_object_face5_lines_number	EQU 4
 bv_object_face6_color		EQU 3
 bv_object_face6_lines_number	EQU 4
 
-bv_light_z_coordinate		EQU -56
+bv_light_z_coordinate1		EQU -56
 bv_EpRGB			EQU $3f	; light source intensity
 bv_kdRGB			EQU 6	; face reflection = object brightness
-bv_D0				EQU 15	; loss of brightness, avoid division by zero
-bv_EpRGB_max			EQU 63	; color table length - 1
+bv_D0				EQU 15	; loss of brightness to avoid division by zero
+bv_EpRGB_max			EQU 64-1 ; shading table length
 
 bv_light_z_radius		EQU 16
 bv_light_z_center		EQU 16
@@ -497,6 +497,7 @@ bf_registers_table_length	EQU bf_lamella_height*4
 czi_zoom_radius			EQU 32768
 czi_zoom_center			EQU 32768
 czi_zoom_angle_speed		EQU 1
+
 
 color_values_number1		EQU 64
 segments_number1		EQU 1
@@ -897,7 +898,7 @@ bv_rotation_x_angle_speed	RS.W 1
 bv_rotation_y_angle_speed	RS.W 1
 bv_rotation_z_angle_speed	RS.W 1
 
-bv_variable_light_z_coordinate	RS.W 1
+bv_light_z_coordinate		RS.W 1
 
 bv_sprite_x_coordinate		RS.W 1
 bv_sprite_y_coordinate		RS.W 1
@@ -1004,7 +1005,7 @@ init_main_variables2
 	move.w	#bv_rotation_y_angle_speed1,bv_rotation_y_angle_speed(a3)
 	move.w	#bv_rotation_z_angle_speed1,bv_rotation_z_angle_speed(a3)
 
-	move.w	#bv_light_z_coordinate,bv_variable_light_z_coordinate(a3)
+	move.w	#bv_light_z_coordinate1,bv_light_z_coordinate(a3)
 
 	move.w	d0,bv_sprite_x_coordinate(a3)
 	move.w	d0,bv_sprite_y_coordinate(a3)
@@ -1060,7 +1061,7 @@ init_main
 	bsr	rz_convert_image_data
 	bsr	wst_init_chars_offsets
 	bsr	wst_init_chars_x_positions
-	bsr	bv_convert_color_table
+	bsr	bv_object_convert_color_table
 	bsr	bv_init_object_info
 	bsr	bg_copy_image_to_bitplane
 	bsr	init_sprites
@@ -1093,7 +1094,7 @@ init_main
 
 
 ; Blenk-Vectors
-	RGB8_TO_RGB8_HIGH_LOW bv,segments_number1*color_values_number1
+	RGB8_TO_RGB8_HIGH_LOW bv_object,segments_number1*color_values_number1
 
 	CNOP 0,4
 bv_init_object_info
@@ -1535,9 +1536,9 @@ bv_move_lightsource
 	MULUF.L bv_light_z_radius*2,d0,d1 ; z' = (zr*(-sin(w)))/2^15
 	swap	d0
 	add.w	#bv_light_z_center,d0	; z' + z center
-	moveq	#bv_light_z_coordinate,d1
+	moveq	#bv_light_z_coordinate1,d1
 	sub.w	d0,d1			; add lightsource z
-	move.w	d1,bv_variable_light_z_coordinate(a3)
+	move.w	d1,bv_light_z_coordinate(a3)
 	rts
 
 
@@ -1577,15 +1578,16 @@ bv_rotation
 	add.w	bv_rotation_z_angle_speed(a3),d1
 	and.w	d3,d1			; remove overflow
 	move.w	d1,bv_rotation_z_angle(a3) 
+
 	lea	bv_object_coordinates(pc),a0
 	lea	bv_rotation_xyz_coordinates(pc),a1
-	move.w	#bv_rotation_d*8,a4	; d
+	move.w	#bv_rotation_d*8,a4
 	add.l	bv_zoom_distance(a3),a4
 	move.w	#bv_rotation_xy_center,a5
 	moveq	#bv_object_edge_points_number-1,d7
 bv_rotation_loop
 	move.w	(a0)+,d0		; x
-	move.l	d7,a2		
+	move.l	d7,a2			; store loop counter		
 	move.w	(a0)+,d1		; y
 	move.w	(a0)+,d2		; z
 	ROTATE_X_AXIS
@@ -1595,18 +1597,18 @@ bv_rotation_loop
 	move.w	d2,d3			; store z
 	ext.l	d0
 	add.w	a4,d3			; z+d
-	MULUF.L bv_rotation_d,d0,d7	; x*d [x projection]
+	MULUF.L bv_rotation_d,d0,d7	; x projection
 	ext.l	d1
 	divs.w	d3,d0			; x' = (x*d)/(z+d)
-	MULUF.L bv_rotation_d,d1,d7	; y*d [y projection]
+	MULUF.L bv_rotation_d,d1,d7	; y projection
 	add.w	a5,d0			; x' + x center
-	move.w	d0,(a1)+		; store x'
+	move.w	d0,(a1)+		; x position
 	divs.w	d3,d1			; y' = (y*d)/(z+d)
 	add.w	a5,d1			; y' + y center
-	move.w	d1,(a1)+		; store y'
+	move.w	d1,(a1)+		; y position
 	asr.w	#3,d2			; z' = z/8
-	move.l	a2,d7			; loop counter
-	move.w	d2,(a1)+		; store z'
+	move.l	a2,d7			; restore loop counter
+	move.w	d2,(a1)+		; z position
 	dbf	d7,bv_rotation_loop
 	movem.l (a7)+,a4-a5
 	rts
@@ -1626,11 +1628,11 @@ bv_draw_lines
 	move.l	cl1_construction2(a3),a4
 	move.l	#((BC0F_SRCA|BC0F_SRCC|BC0F_DEST+NANBC|NABC|ABNC)<<16)|(BLTCON1F_LINE+BLTCON1F_SING),a3 ; minterm line mode
 	ADDF.W	cl1_COLOR12_high5+WORD_SIZE,a4
-	lea	bv_color_table(pc),a7
+	lea	bv_object_color_table(pc),a7
 	moveq	#bv_object_faces_number-1,d7
 bv_draw_lines_loop1
 	move.l	(a0)+,a5		; points starts
-	swap	d7			; store loop counter
+	swap	d7			; store loop counter in high word
 	move.w	(a5),d4			; p1 start
 	move.w	WORD_SIZE(a5),d5	; p2 start
 	move.w	LONGWORD_SIZE(a5),d6	; p3 start
@@ -1644,27 +1646,27 @@ bv_draw_lines_loop1
 	muls.w	d2,d1			; yu*xv
 	sub.l	d0,d1			; zn = (yu*xv)-(xu*yv)
 	bpl	bv_draw_lines_skip5
-
+; Calculate face depth
 	move.w	6(a5),d7		; p4 start
-	move.w	4(a1,d4.w*2),d0		; zm = zp1+zp2+zp3+zp4
-	add.w	4(a1,d5.w*2),d0
-	add.w	4(a1,d6.w*2),d0
+	move.w	LONGWORD_SIZE(a1,d4.w*2),d0 ; zm = zp1+zp2+zp3+zp4
+	add.w	LONGWORD_SIZE(a1,d5.w*2),d0
+	add.w	LONGWORD_SIZE(a1,d6.w*2),d0
 	IFEQ bv_object_edge_points_per_face-4
-		add.w	4(a1,d7.w*2),d0
+		add.w	LONGWORD_SIZE(a1,d7.w*2),d0
 	ENDC
 	move.l	#bv_kdRGB*bv_EpRGB,d1	; kdRGB*EpRGB
 	IFEQ bv_object_edge_points_per_face-4
-		asr.w	#2,d0		; zm / number of edge points
+		asr.w	#2,d0		; zm = average face z
 	ELSE
 		ext.l	d0
-		divs.w	#bv_object_edge_points_per_face,d0 ; zm / number of edge points
+		divs.w	#bv_object_edge_points_per_face,d0 ; zm = average face z
 	ENDC
-
+; Calculate face colour intensity
 	move.w	(a0),d7			; color number
-	sub.w	variables+bv_variable_light_z_coordinate(pc),d0 ; D = zm-zl
+	sub.w	variables+bv_light_z_coordinate(pc),d0 ; D = zm-zl
 	sub.w	#bv_D0,d0		; D-D0
 	bgt.s	bv_draw_lines_skip1
-	moveq	#1,d0			; D = 1
+	moveq	#1,d0			; D = 1 to avoid division by zero
 bv_draw_lines_skip1
 	divu.w	d0,d1			; RtdRGB = (kdRGB*EpRGB)/(D-D0)
 	IFEQ bv_EpRGB_check_max_enabled
@@ -1673,7 +1675,6 @@ bv_draw_lines_skip1
 		MOVEF.W bv_EpRGB_max,d1
 bv_draw_lines_skip2
 	ENDC
-
 	move.l	(a7,d1.w*4),d0
 	move.w	d0,(cl1_COLOR12_low5-cl1_COLOR12_high5,a4,d7.w*4) ; color low
 	swap	d0
@@ -1687,6 +1688,7 @@ bv_draw_lines_loop2
 	GET_LINE_PARAMETERS bv,AREAFILL,,extra_pf1_plane_width*extra_pf1_depth,bv_draw_lines_skip4
 	add.l	a2,d1			; add bitplane address
 	add.l	a3,d0			; set remaining BLTCON0 & BLTCON1 bits
+
 	btst	#0,d7			; bitplane 1 ?
 	beq.s	bv_draw_lines_skip3
 	WAITBLIT
@@ -2758,44 +2760,44 @@ wst_chars_x_positions
 
 ; Blenk-Vectors
 	CNOP 0,4
-bv_color_table
+bv_object_color_table
 	INCLUDE "Old'scool:colorpalettes/64-Colorgradient-Brown.ct"
 
 ; Cube
 	CNOP 0,2
 bv_object_coordinates
-	DC.W -(35*8),-(35*8),-(35*8)	; P0
-	DC.W 35*8,-(35*8),-(35*8)	; P1
-	DC.W 35*8,35*8,-(35*8)		; P2
-	DC.W -(35*8),35*8,-(35*8)	; P3
-	DC.W -(35*8),-(35*8),35*8	; P4
-	DC.W 35*8,-(35*8),35*8		; P5
-	DC.W 35*8,35*8,35*8		; P6
-	DC.W -(35*8),35*8,35*8		; P7
+	DC.W -(35*8),-(35*8),-(35*8)	; p0
+	DC.W 35*8,-(35*8),-(35*8)	; p1
+	DC.W 35*8,35*8,-(35*8)		; p2
+	DC.W -(35*8),35*8,-(35*8)	; p3
+	DC.W -(35*8),-(35*8),35*8	; p4
+	DC.W 35*8,-(35*8),35*8		; p5
+	DC.W 35*8,35*8,35*8		; p6
+	DC.W -(35*8),35*8,35*8		; p7
 
 	CNOP 0,4
 bv_object_info
-; 1. face
+; Face 1
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face1_color
 	DC.W bv_object_face1_lines_number-1
-; 2. face
+; Face 2
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face2_color
 	DC.W bv_object_face2_lines_number-1
-; 3. face
+; Face 3
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face3_color
 	DC.W bv_object_face3_lines_number-1
-; 4. face
+; Face 4
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face4_color
 	DC.W bv_object_face4_lines_number-1
-; 5. face
+; Face 5
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face5_color
 	DC.W bv_object_face5_lines_number-1
-; 6. face
+; Face 6
 	DC.L 0				; xyz coordinates
 	DC.W bv_object_face6_color
 	DC.W bv_object_face6_lines_number-1
