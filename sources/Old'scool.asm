@@ -1247,10 +1247,11 @@ cl1_set_branches_pointers
 
 ; Input
 ; d0.l	Jump entry second copperlist
-; d2.l	cl1_subextension1_size
-; d4.l	cl1_extension1_size
+; d2.l	Cl1 subextension1 size
+; d4.l	Cl1 extension1 size
 ; a0.l	1st copperlist
 ; Result
+; no return value
 	CNOP 0,4
 cl1_set_jump_entry_pointers
 	MOVEF.L cl1_extension1_entry+cl1_ext1_subextension1_entry+cl1_subextension1_size,d1
@@ -2636,11 +2637,12 @@ rz_set_branches_pointers
 
 
 ; Input
-; d0.l	second copperlist
-; d2.l	cl1_subextension1_size
-; d3.l	cl2_extension1_size
+; d0.l	2nd copperlist
+; d2.l	Cl1 subextension size
+; d3.l	Cl2 extension1 size
 ; a0.l	1st copperlist
 ; Result
+; no return value
 	CNOP 0,4
 rz_set_jump_entry_pointers
 	MOVEF.L cl1_extension1_entry+cl1_ext1_subextension1_entry+cl1_subextension1_size,d1
