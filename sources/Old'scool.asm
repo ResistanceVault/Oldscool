@@ -1159,12 +1159,9 @@ cl1_init_copperlist
 	bsr	cl1_set_branches_pointers
 	rts
 
-
 	COP_INIT_PLAYFIELD_REGISTERS cl1
 
-
 	COP_INIT_SPRITE_POINTERS cl1
-
 
 	CNOP 0,4
 cl1_init_colors
@@ -1190,9 +1187,7 @@ cl1_init_colors
 	COP_INIT_COLOR_LOW COLOR00,16,spr_rgb8_color_table
 	rts
 
-
 	COP_INIT_BITPLANE_POINTERS cl1
-
 
 	CNOP 0,4
 cl1_init_branches_pointers
@@ -1217,18 +1212,13 @@ cl1_init_branches_pointers_loop2
 	dbf	d7,cl1_init_branches_pointers_loop1
 	rts
 
-
 	COP_INIT_COPINT cl1,cl1_hstart2,cl1_vstart2
-
 
 	COP_SET_SPRITE_POINTERS cl1,construction2,spr_number
 
-
 	COP_SET_BITPLANE_POINTERS cl1,construction2,pf1_depth3
 
-
 	COPY_COPPERLIST cl1,2
-
 
 	CNOP 0,4
 cl1_set_branches_pointers
@@ -1243,7 +1233,6 @@ cl1_set_branches_pointers
 	ADDF.L	cl2_extension2_entry,d0	; jump entry
 	bsr.s	cl1_set_jump_entry_pointers
 	rts
-
 
 ; Input
 ; d0.l	Jump entry second copperlist
@@ -1288,7 +1277,6 @@ cl2_init_copperlist
 	bsr	cl2_copy_copperlist
 	rts
 
-
 	CNOP 0,4
 cl2_init_bplcon4_chunky
 	move.l	#(BPLCON4<<16)|bplcon4_bits,d0
@@ -1308,7 +1296,6 @@ cl2_init_bplcon4_chunky_loop2
 	dbf	d7,cl2_init_bplcon4_chunky_loop1
 	rts
 
-
 	CNOP 0,4
 cl2_init_noop
 	IFEQ open_border_enabled 
@@ -1316,7 +1303,6 @@ cl2_init_noop
 	ENDC
 	COP_MOVEQ 0,COPJMP1
 	rts
-
 
 	COPY_COPPERLIST cl2,2
 
@@ -1375,10 +1361,10 @@ beam_routines
 	SWAP_COPPERLIST cl2,2
 
 
-	SWAP_SPRITES spr_swap_number,6
+	SWAP_SPRITES spr_swap_number,6	; index 6
 
 
-	SET_SPRITES spr_swap_number,6
+	SET_SPRITES cl1,spr_swap_number,6 ; index 6
 
 
 	CNOP 0,4
@@ -2496,7 +2482,9 @@ vertb_interrupt_server
 		rts
 
 		PT_FADE_OUT_VOLUME stop_fx_active
-		CNOP 0,4
+	ELSE
+		bsr.s	pt_PlayMusic
+		rts
 	ENDC
 
 	IFD PROTRACKER_VERSION_2 
@@ -2714,7 +2702,6 @@ spr_rgb8_color_table
 	CNOP 0,4
 spr_pointers_construction
 	DS.L spr_number
-
 
 	CNOP 0,4
 spr_pointers_display
