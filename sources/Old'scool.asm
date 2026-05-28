@@ -202,7 +202,7 @@ pf_colors_number		EQU pf1_colors_number+pf2_colors_number
 pf_depth			EQU pf1_depth3+pf2_depth3
 
 pf_extra_number			EQU 3
-extra_pf1_x_size		EQU 128
+extra_pf1_x_size		EQU 128	; tripple buffer
 extra_pf1_y_size		EQU 128
 extra_pf1_depth			EQU 2
 extra_pf2_x_size		EQU 128
@@ -822,6 +822,7 @@ spr7_end			RS.L 1*(spr_pixel_per_datafetch/WORD_BITS)
 
 sprite7_size			RS.B 0
 
+
 spr0_x_size1			EQU spr_x_size1
 spr0_y_size1			EQU sprite0_size/(spr_pixel_per_datafetch/4)
 spr1_x_size1			EQU spr_x_size1
@@ -1165,26 +1166,26 @@ cl1_init_copperlist
 
 	CNOP 0,4
 cl1_init_colors
-	COP_INIT_COLOR_HIGH COLOR00,32,pf1_rgb8_color_table
+	COP_LOAD_COLORMAP_HIGH COLOR00,32,pf1_rgb8_color_table
 	COP_SELECT_COLOR_HIGH_BANK 1
-	COP_INIT_COLOR_HIGH COLOR00,32
+	COP_LOAD_COLORMAP_HIGH COLOR00,32
 	COP_SELECT_COLOR_HIGH_BANK 2
-	COP_INIT_COLOR_HIGH COLOR00,32
+	COP_LOAD_COLORMAP_HIGH COLOR00,32
 	COP_SELECT_COLOR_HIGH_BANK 3
-	COP_INIT_COLOR_HIGH COLOR00,32
+	COP_LOAD_COLORMAP_HIGH COLOR00,32
 	COP_SELECT_COLOR_HIGH_BANK 4
-	COP_INIT_COLOR_HIGH COLOR00,16,spr_rgb8_color_table
+	COP_LOAD_COLORMAP_HIGH COLOR00,16,spr_rgb8_color_table
 
 	COP_SELECT_COLOR_LOW_BANK 0
-	COP_INIT_COLOR_LOW COLOR00,32,pf1_rgb8_color_table
+	COP_LOAD_COLORMAP_LOW COLOR00,32,pf1_rgb8_color_table
 	COP_SELECT_COLOR_LOW_BANK 1
-	COP_INIT_COLOR_LOW COLOR00,32
+	COP_LOAD_COLORMAP_LOW COLOR00,32
 	COP_SELECT_COLOR_LOW_BANK 2
-	COP_INIT_COLOR_LOW COLOR00,32
+	COP_LOAD_COLORMAP_LOW COLOR00,32
 	COP_SELECT_COLOR_LOW_BANK 3
-	COP_INIT_COLOR_LOW COLOR00,32
+	COP_LOAD_COLORMAP_LOW COLOR00,32
 	COP_SELECT_COLOR_LOW_BANK 4
-	COP_INIT_COLOR_LOW COLOR00,16,spr_rgb8_color_table
+	COP_LOAD_COLORMAP_LOW COLOR00,16,spr_rgb8_color_table
 	rts
 
 	COP_INIT_BITPLANE_POINTERS cl1
